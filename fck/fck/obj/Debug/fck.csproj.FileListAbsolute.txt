@@ -1,0 +1,7 @@
+C:\Users\vollfed\source\repos\fck\fck\bin\Debug\fck.exe.config
+C:\Users\vollfed\source\repos\fck\fck\bin\Debug\fck.exe
+C:\Users\vollfed\source\repos\fck\fck\bin\Debug\fck.pdb
+C:\Users\vollfed\source\repos\fck\fck\obj\Debug\fck.csprojAssemblyReference.cache
+C:\Users\vollfed\source\repos\fck\fck\obj\Debug\fck.csproj.CoreCompileInputs.cache
+C:\Users\vollfed\source\repos\fck\fck\obj\Debug\fck.exe
+C:\Users\vollfed\source\repos\fck\fck\obj\Debug\fck.pdb
