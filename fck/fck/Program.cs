@@ -10,8 +10,18 @@ namespace fck
     // Создание делегата.
     delegate double MathOperation(double a, double b);
 
-    class Program
+    delegate void ErrorNotificationType(string message);
+
+    class Calculator
     {
+        string resultingFile;
+        public Calculator(string resFilePath = "answers.txt")
+        {
+            resultingFile = resFilePath;
+        }
+
+        public event ErrorNotificationType ErrorNotification;
+
         // Задание словаря с математическими операциями.
         static Dictionary<string, MathOperation> operations = new Dictionary<string, MathOperation>
         {
@@ -27,7 +37,7 @@ namespace fck
         /// </summary>
         /// <param name="expr"> Выражение. </param>
         /// <returns> Возвращает результат выражения. </returns>
-        public static double Calculate(string expr)
+        public double Calculate(string expr)
         {
             // Разбиение выражения на два аргумента и операцию.
             string[] expression = expr.Split();
@@ -37,11 +47,52 @@ namespace fck
         }
 
         /// <summary>
+        /// Метод, вычисляющий все выражения в файле.
+        /// </summary>
+        /// <param name="path"> Путь к файлу. </param>
+        public void CalulateAllExpressions(string path)
+        {
+            string[] res = FileRead(path);
+            FileDelete(resultingFile);
+
+            // Вычисление всех выражений.
+            foreach (var expr in res)
+            {
+                // Я правдла не понимаю зачем это все нужно, т.к у нас тип дабл, а значит
+                // мы прекрасно можем и делить на 0, и получать бесконечность в качестве ответа.
+                try
+                {
+                    // Если выражение задано некорректно, то в файл ничего не запишется, а,
+                    // следовательно, все остальные ответы поедут. В условии ничего об этом 
+                    // не сказано, поэтому ничего с этим и не сделал.
+                    FileWrite(resultingFile, $"{Calculate(expr):f3}" + Environment.NewLine);
+                }
+                catch (KeyNotFoundException)
+                {
+                    ErrorNotification("неверный оператор" + Environment.NewLine);
+                }
+                catch (DivideByZeroException)
+                {
+                    ErrorNotification("bruh" + Environment.NewLine);
+                }
+                catch (NotFiniteNumberException)
+                {
+                    ErrorNotification("не число" + Environment.NewLine);
+                }
+                catch (Exception)
+                {
+                    ErrorNotification("Непредвиденная ошибка" + Environment.NewLine);
+                }
+            }
+        }
+
+
+        /// <summary>
         /// Метод, считывающий данные из файла.
         /// </summary>
         /// <param name="path"> Путь к файлу. </param>
         /// <returns> Возвращает массив строк из файла. </returns>
-        public static string[] FileRead(string path)
+        public string[] FileRead(string path)
         {
             string[] res = { };
 
@@ -53,19 +104,19 @@ namespace fck
             // Улавливание возможных ошибок.
             catch (IOException e)
             {
-                Console.WriteLine("IO Exception: ", e.Message);
+                ErrorNotification($"IO Exception: {e.Message}");
             }
             catch (UnauthorizedAccessException e)
             {
-                Console.WriteLine("Unauthorized Access Exception: ", e.Message);
+                ErrorNotification($"Unauthorized Access Exception: {e.Message}");
             }
             catch (System.Security.SecurityException e)
             {
-                Console.WriteLine("Security Exception: ", e.Message);
+                ErrorNotification($"Security Exception: {e.Message}");
             }
             catch (Exception e)
             {
-                Console.WriteLine("Exception: ", e.Message);
+                ErrorNotification($"Exception: {e.Message}");
             }
 
             return res;
@@ -74,7 +125,7 @@ namespace fck
         /// Метод, записывающий данные в файл.
         /// </summary>
         /// <param name="path"> Путь к файлу. </param>
-        public static void FileWrite(string path, string data)
+        public void FileWrite(string path, string data)
         {
             try
             {
@@ -84,26 +135,26 @@ namespace fck
             // Улавливание возможных ошибок.
             catch (IOException e)
             {
-                Console.WriteLine("IO Exception: ", e.Message);
+                ErrorNotification($"IO Exception: {e.Message}");
             }
             catch (UnauthorizedAccessException e)
             {
-                Console.WriteLine("Unauthorized Access Exception: ", e.Message);
+                ErrorNotification($"Unauthorized Access Exception: {e.Message}");
             }
             catch (System.Security.SecurityException e)
             {
-                Console.WriteLine("Security Exception: ", e.Message);
+                ErrorNotification($"Security Exception: {e.Message}");
             }
             catch (Exception e)
             {
-                Console.WriteLine("Exception: ", e.Message);
+                ErrorNotification($"Exception: {e.Message}");
             }
         }
         /// <summary>
         /// Метод, удаляющий файл.
         /// </summary>
         /// <param name="path"> Путь к файлу. </param>
-        public static void FileDelete(string path)
+        public void FileDelete(string path)
         {
             try
             {
@@ -114,19 +165,19 @@ namespace fck
             // Улавливание возможных ошибок.
             catch (IOException e)
             {
-                Console.WriteLine("IO Exception: ", e.Message);
+                ErrorNotification($"IO Exception: {e.Message}");
             }
             catch (UnauthorizedAccessException e)
             {
-                Console.WriteLine("Unauthorized Access Exception: ", e.Message);
+                ErrorNotification($"Unauthorized Access Exception: {e.Message}");
             }
             catch (System.Security.SecurityException e)
             {
-                Console.WriteLine("Security Exception: ", e.Message);
+                ErrorNotification($"Security Exception: {e.Message}");
             }
             catch (Exception e)
             {
-                Console.WriteLine("Exception: ", e.Message);
+                ErrorNotification($"Exception: {e.Message}");
             }
         }
 
@@ -135,16 +186,16 @@ namespace fck
         /// </summary>
         /// <param name="dataPath"> Путь к файлу с вычисленными результатами. </param>
         /// <param name="ansPath"> Путь к файлу с данными результатами. </param>
-        public static void ExpressionsChecker(string dataPath, string ansPath)
+        public void ExpressionsChecker(string ansPath, string logPath)
         {
             // Удаление старого отчета, если он существует.
-            FileDelete("results.txt");
+            FileDelete(logPath);
 
             // Счетчик несошедшихся ответов.
             int wrongAns = 0;
 
             // Получение данных из обоих файлов.
-            string[] data = FileRead(dataPath);
+            string[] data = FileRead(resultingFile);
             string[] answers = FileRead(ansPath);
 
             // Если кол-во строк в файлах не совпадает, то дозабить меньший файл пустыми строками.
@@ -160,30 +211,74 @@ namespace fck
             for (int i = 0; i < data.Length; i++)
             {
                 if (data[i] == answers[i])
-                    FileWrite("results.txt", "OK" + Environment.NewLine);
+                    FileWrite(logPath, "OK" + Environment.NewLine);
                 else
                 {
                     wrongAns++;
-                    FileWrite("results.txt", "Error" + Environment.NewLine);
+                    FileWrite(logPath, "Error" + Environment.NewLine);
                 }
             }
+
+            FileWrite(logPath, wrongAns.ToString());
         }
+    }
+    class Program
+    {
+        const string expressionsPath = "expressions.txt";
+
         static void Main(string[] args)
         {
-            // Считывание выражений из файла.
-            string[] res = FileRead("expressions.txt");
+            Calculator calc = new Calculator("answers.txt");
 
-            // Удаление файла с ответами, если такой был.
-            FileDelete("answers.txt");
+            calc.ErrorNotification += ConsoleErrorHandler;
+            calc.ErrorNotification += ResultErrorHandler;
 
-            // Вычисление всех выражений.
-            foreach (var expr in res)
+            // Подчсет всех выражений.
+            calc.CalulateAllExpressions(expressionsPath);
+            // Сверка результатов.
+            calc.ExpressionsChecker("expressions_checker.txt", "results.txt");
+
+
+            Console.ReadLine();        
+        }
+
+
+        static void ConsoleErrorHandler(string message)
+        {
+            Console.WriteLine(message + $" {DateTime.Now.TimeOfDay}");
+        }
+
+        public static void ResultErrorHandler(string message)
+        {
+            try
             {
-                FileWrite("answers.txt", $"{Calculate(expr):f3}" + Environment.NewLine);
+                // Этот файл нужно очищать при каждом перезапуске программы.
+                // (есть выбор или делать еще один try-catch, либо оставить так)
+                if (message == "не число" + Environment.NewLine)
+                    File.AppendAllText("log.txt", "не число" + Environment.NewLine);
+                if (message == "неверный оператор" + Environment.NewLine)
+                    File.AppendAllText("log.txt", "неверный оператор" + Environment.NewLine);
+                if (message == "bruh" + Environment.NewLine)
+                    File.AppendAllText("log.txt", "bruh" + Environment.NewLine);
+            }
+            // Улавливание возможных ошибок.
+            catch (IOException e)
+            {
+                Console.WriteLine($"IO Exception: {e.Message}");
+            }
+            catch (UnauthorizedAccessException e)
+            {
+                Console.WriteLine($"Unauthorized Access Exception: {e.Message}");
+            }
+            catch (System.Security.SecurityException e)
+            {
+                Console.WriteLine($"Security Exception: {e.Message}");
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine($"Exception: {e.Message}");
             }
 
-            // Сверка результатов.
-            ExpressionsChecker("answers.txt", "expressions_checker.txt");
         }
     }
 }
